@@ -1,0 +1,28 @@
+{
+  "name":            "fling",
+  "description":     "JSON Fling is a simple JSON-RPC framework for NodeJS with built-in permissions and support for different transports.",
+  "version":         "0.0.1",
+  "author":          "Anthony Hildoer <anthony@bluerival.com>",
+  "repository":      {
+    "type": "git",
+    "url":  "git@github.com:BlueRival/json-fling.git"
+  },
+  "dependencies":    {
+    "async": "~0",
+    "sidi":  "~0"
+  },
+  "devDependencies": {
+    "mocha": "~1"
+  },
+  "keywords":        [
+    "json",
+    "rpc",
+    "transports",
+    "permissions",
+    "api"
+  ],
+  "engines":         {
+    "node": ">=0.10.0"
+  },
+  "license":         "MIT"
+}
