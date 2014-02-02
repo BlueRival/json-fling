@@ -1,13 +1,13 @@
 "use strict";
 
-module.exports.receiver = require( './lib/receive' );
-module.exports.receiver = require( './lib/send' );
+module.exports.Receiver = require( './lib/receive' );
+module.exports.Sender = require( './lib/send' );
 
 module.exports.transports = {
   receivers: {
-    express: require( './lib/transport.receiver.express' )
+    Express: require( './lib/transport.receiver.express' )
   },
   senders:   {
-    http: require( './lib/transport.sender.http' )
+    Http: require( './lib/transport.sender.http' )
   }
 };
