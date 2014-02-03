@@ -1,7 +1,7 @@
 {
   "name":            "fling",
   "description":     "JSON Fling is a simple JSON-RPC framework for NodeJS with built-in permissions and support for different transports.",
-  "version":         "0.0.5",
+  "version":         "0.0.6",
   "author":          "Anthony Hildoer <anthony@bluerival.com>",
   "repository":      {
     "type": "git",
