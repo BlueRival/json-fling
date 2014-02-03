@@ -1,63 +1,26 @@
 "use strict";
 
 var assert = require( 'assert' );
-var fs = require( 'fs' );
 
 var FlingReceiver = require( '../lib/receive' );
+
+var rootModuleResponse = {
+  module: 'root',
+  other:  [ 'data' ]
+};
+var nestedModuleResponse = {
+  module: 'nested',
+  other:  [ 'data' ]
+};
 
 describe( 'Fling Receiver', function () {
 
   var flingReceiver = null;
-  var originalFs = {};
-
-  var fsOverrides = null;
-
-  before( function () {
-    originalFs.exists = fs.exists;
-    originalFs.existsSync = fs.existsSync;
-    originalFs.statSync = fs.statSync;
-    originalFs.realPathSync = fs.realpathSync;
-
-    fs.exists = function ( path, done ) {
-      done( fsOverrides.exists );
-    };
-
-    fs.existsSync = function ( path ) {
-      return fsOverrides.exists;
-    };
-
-    fs.statSync = function ( path ) {
-      return {
-        isDirectory: function () {
-          return fsOverrides.isDirectory;
-        }
-      };
-    };
-
-    fs.realPathSync = function ( path ) {
-      return path;
-    };
-
-  } );
-
-  beforeEach( function () {
-    fsOverrides = {
-      exists:      true,
-      isDirectory: true
-    };
-  } );
-
-  after( function () {
-    fs.exists = originalFs.exists;
-    fs.existsSync = originalFs.existsSync;
-    fs.statSync = originalFs.statSync;
-    fs.realPathSync = originalFs.realPathSync;
-  } );
 
   it( 'should fail to instantiate with no parameters', function () {
     try {
       flingReceiver = new FlingReceiver();
-      assert.ifError( new Error( 'thrown exception expected' ) );
+      assert.ifError( new Error( 'thrown exception expected, but did not fire' ) );
     } catch ( e ) {
       assert.ok( (e + '').match( /config field baseDir is required/ ) );
     }
@@ -65,13 +28,11 @@ describe( 'Fling Receiver', function () {
 
   it( 'should fail to instantiate with baseDir not existing', function () {
 
-    fsOverrides.exists = false;
-
     try {
       flingReceiver = new FlingReceiver( {
-        baseDir: '/base/dir'
+        baseDir: '/bad/base/dir'
       } );
-      assert.ifError( new Error( 'thrown exception expected' ) );
+      assert.ifError( new Error( 'thrown exception expected, but did not fire' ) );
     } catch ( e ) {
       assert.ok( (e + '').match( /config field baseDir identifies a missing directory/ ) );
     }
@@ -79,15 +40,13 @@ describe( 'Fling Receiver', function () {
 
   it( 'should fail to instantiate with baseDir not a directory', function () {
 
-    fsOverrides.isDirectory = false;
-
     try {
       flingReceiver = new FlingReceiver( {
-        baseDir: '/base/dir'
+        baseDir: __filename
       } );
-      assert.ifError( new Error( 'thrown exception expected' ) );
+      assert.ifError( new Error( 'thrown exception expected, but did not fire' ) );
     } catch ( e ) {
-      assert.ok( (e + '').match( /config field baseDir must identify a directory/ ) );
+      assert.ok( (e + '').match( /config field baseDir must identify a directory/ ), 'Actual error: ' + e );
     }
   } );
 
@@ -95,7 +54,7 @@ describe( 'Fling Receiver', function () {
 
     try {
       flingReceiver = new FlingReceiver( {
-        baseDir:   '/base/dir',
+        baseDir:   __dirname,
         authorize: 'function'
       } );
       assert.ifError( new Error( 'thrown exception expected' ) );
@@ -106,13 +65,13 @@ describe( 'Fling Receiver', function () {
 
   it( 'should instantiate with baseDir set', function () {
     flingReceiver = new FlingReceiver( {
-      baseDir: '/base/dir'
+      baseDir: __dirname
     } );
   } );
 
   it( 'should instantiate with authorize set', function () {
     flingReceiver = new FlingReceiver( {
-      baseDir:   '/base/dir',
+      baseDir:   __dirname,
       authorize: function () {
         // NO-OP
       }
@@ -122,7 +81,7 @@ describe( 'Fling Receiver', function () {
   it( 'should add a transport once', function () {
 
     flingReceiver = new FlingReceiver( {
-      baseDir: '/base/dir'
+      baseDir: __dirname
     } );
 
     var onField = null;
@@ -150,30 +109,13 @@ describe( 'Fling Receiver', function () {
   it( 'should respond to a request event with 404 if method action missing', function ( done ) {
 
     flingReceiver = new FlingReceiver( {
-      baseDir: '/base/dir'
+      baseDir: __dirname + '/rpcModules'
     } );
 
     var requestId = new Date().getTime();
-    var responseData = {
-      some: ['data', 'goes', 'here'],
-      in:   {
-        any: 'format'
-      }
-    };
 
     var onRequestFunc = function () {
       // NO-OP
-    };
-
-    // mock the RPC module
-    flingReceiver._require = function ( path ) {
-
-      if ( path === '/base/dir/domain/module1/module2' ) {
-        return {};
-      } else {
-        return require( '../lib/' + path );
-      }
-
     };
 
     // mock a transport
@@ -191,7 +133,7 @@ describe( 'Fling Receiver', function () {
       payload:  {
         jsonrpc: '2.0',
         id:      requestId,
-        method:  'domain.module1.module2.action',
+        method:  'rootModule.missingAction',
         params:  { some: 'values', here: 0 }
       },
       response: function ( response ) {
@@ -218,37 +160,14 @@ describe( 'Fling Receiver', function () {
   it( 'should respond to a request event with 404 if method module missing', function ( done ) {
 
     flingReceiver = new FlingReceiver( {
-      baseDir: '/base/dir'
+      baseDir: __dirname + '/rpcModules'
     } );
 
     var requestId = new Date().getTime();
-    var responseData = {
-      some: ['data', 'goes', 'here'],
-      in:   {
-        any: 'format'
-      }
-    };
 
     var onRequestFunc = function () {
       // NO-OP
     };
-
-    // mock the RPC module
-    flingReceiver._require = function ( path ) {
-
-      if ( path === '/base/dir/domain/module1/module3' ) {
-        return {
-          'action': function ( params, done ) {
-            done( 200, responseData );
-          }
-        };
-      } else {
-        return require( '../lib/' + path );
-      }
-
-    };
-
-    fsOverrides.exists = false;
 
     // mock a transport
     flingReceiver.addTransport( {
@@ -265,7 +184,7 @@ describe( 'Fling Receiver', function () {
       payload:  {
         jsonrpc: '2.0',
         id:      requestId,
-        method:  'domain.module1.module3.action',
+        method:  'missingModule.missingAction',
         params:  { some: 'values', here: 0 }
       },
       response: function ( response ) {
@@ -292,34 +211,13 @@ describe( 'Fling Receiver', function () {
   it( 'should respond to a request event', function ( done ) {
 
     flingReceiver = new FlingReceiver( {
-      baseDir: '/base/dir'
+      baseDir: __dirname + '/rpcModules'
     } );
 
     var requestId = new Date().getTime();
-    var responseData = {
-      some: ['data', 'goes', 'here'],
-      in:   {
-        any: 'format'
-      }
-    };
 
     var onRequestFunc = function () {
       // NO-OP
-    };
-
-    // mock the RPC module
-    flingReceiver._require = function ( path ) {
-
-      if ( path === '/base/dir/domain/module1/module2' ) {
-        return {
-          'action': function ( params, done ) {
-            done( 200, responseData );
-          }
-        };
-      } else {
-        return require( '../lib/' + path );
-      }
-
     };
 
     // mock a transport
@@ -337,7 +235,7 @@ describe( 'Fling Receiver', function () {
       payload:  {
         jsonrpc: '2.0',
         id:      requestId,
-        method:  'domain.module1.module2.action',
+        method:  'rootModule.action',
         params:  { some: 'values', here: 0 }
       },
       response: function ( response ) {
@@ -346,7 +244,108 @@ describe( 'Fling Receiver', function () {
           assert.strictEqual( response.jsonrpc, '2.0' );
           assert.strictEqual( response.id, requestId );
           assert.strictEqual( response.error, undefined );
-          assert.deepEqual( response.result, responseData );
+          assert.deepEqual( stringFormat( response.result ), stringFormat( rootModuleResponse ) );
+          done();
+        } catch ( e ) {
+          done( e );
+        }
+      }
+    } );
+
+  } );
+
+  it( 'should pass params to the module.action', function ( done ) {
+
+    flingReceiver = new FlingReceiver( {
+      baseDir: __dirname + '/rpcModules'
+    } );
+
+    var requestId = new Date().getTime();
+
+    var onRequestFunc = function () {
+      // NO-OP
+    };
+
+    // mock a transport
+    flingReceiver.addTransport( {
+      on: function ( field, func ) {
+        if ( field === 'request' ) {
+          onRequestFunc = func;
+        }
+      }
+    } );
+
+    // simulate a request event on the mock transport
+    onRequestFunc( {
+      agentId:  'sess_1234567890',
+      payload:  {
+        jsonrpc: '2.0',
+        id:      requestId,
+        method:  'echoModule.action',
+        params:  { some: 'values', here: 0 }
+      },
+      response: function ( response ) {
+
+        try {
+          assert.strictEqual( response.jsonrpc, '2.0' );
+          assert.strictEqual( response.id, requestId );
+          assert.strictEqual( response.error, undefined );
+          assert.deepEqual( stringFormat( response.result ), stringFormat( {
+            yourParams: {
+              some: 'values',
+              here: 0
+            },
+            newData:    {
+              hi: 'there'
+            }
+          } ) );
+          done();
+        } catch ( e ) {
+          done( e );
+        }
+      }
+    } );
+
+  } );
+
+  it( 'should find modules in sub directories', function ( done ) {
+
+    flingReceiver = new FlingReceiver( {
+      baseDir: __dirname + '/rpcModules'
+    } );
+
+    var requestId = new Date().getTime();
+
+    var onRequestFunc = function () {
+      // NO-OP
+    };
+
+    // mock a transport
+    flingReceiver.addTransport( {
+      on: function ( field, func ) {
+        if ( field === 'request' ) {
+          onRequestFunc = func;
+        }
+      }
+    } );
+
+    // simulate a request event on the mock transport
+    onRequestFunc( {
+      agentId:  'sess_1234567890',
+      payload:  {
+        jsonrpc: '2.0',
+        id:      requestId,
+        method:  'dir1.dir2.nestedModule.action',
+        params:  { some: 'values', here: 0 }
+      },
+      response: function ( response ) {
+
+        try {
+          assert.strictEqual( response.jsonrpc, '2.0' );
+          assert.strictEqual( response.id, requestId );
+          assert.strictEqual( response.error, undefined );
+          assert.deepEqual( stringFormat( response.result ),
+            stringFormat( nestedModuleResponse ) );
           done();
         } catch ( e ) {
           done( e );
@@ -359,37 +358,16 @@ describe( 'Fling Receiver', function () {
   it( 'should block an unauthorized agent', function ( done ) {
 
     flingReceiver = new FlingReceiver( {
-      baseDir:   '/base/dir',
+      baseDir: __dirname + '/rpcModules',
       authorize: function ( agentId, done ) {
         done( false );
       }
     } );
 
     var requestId = new Date().getTime();
-    var responseData = {
-      some: ['data', 'goes', 'here'],
-      in:   {
-        any: 'format'
-      }
-    };
 
     var onRequestFunc = function () {
       // NO-OP
-    };
-
-    // mock the RPC module
-    flingReceiver._require = function ( path ) {
-
-      if ( path === '/base/dir/domain/module1/module2' ) {
-        return {
-          'action': function ( params, done ) {
-            done( 200, responseData );
-          }
-        };
-      } else {
-        return require( '../lib/' + path );
-      }
-
     };
 
     // mock a transport
@@ -407,7 +385,7 @@ describe( 'Fling Receiver', function () {
       payload:  {
         jsonrpc: '2.0',
         id:      requestId,
-        method:  'domain.module1.module2.action',
+        method:  'rootModule.action',
         params:  { some: 'values', here: 0 }
       },
       response: function ( response ) {
@@ -418,7 +396,7 @@ describe( 'Fling Receiver', function () {
           assert.strictEqual( typeof response.error, 'object' );
           assert.strictEqual( response.error.code, 401 );
           assert.strictEqual( response.error.message, 'Not authorized for specified method' );
-          assert.strictEqual( response.error.data, 'domain.module1.module2.action' );
+          assert.strictEqual( response.error.data, 'rootModule.action' );
 
           assert.deepEqual( response.result, undefined );
           done();
@@ -433,37 +411,16 @@ describe( 'Fling Receiver', function () {
   it( 'should allow an authorized agent', function ( done ) {
 
     flingReceiver = new FlingReceiver( {
-      baseDir:   '/base/dir',
+      baseDir: __dirname + '/rpcModules',
       authorize: function ( agentId, method, done ) {
         done( true );
       }
     } );
 
     var requestId = new Date().getTime();
-    var responseData = {
-      some: ['data', 'goes', 'here'],
-      in:   {
-        any: 'format'
-      }
-    };
 
     var onRequestFunc = function () {
       // NO-OP
-    };
-
-    // mock the RPC module
-    flingReceiver._require = function ( path ) {
-
-      if ( path === '/base/dir/domain/module1/module2' ) {
-        return {
-          'action': function ( params, done ) {
-            done( 200, responseData );
-          }
-        };
-      } else {
-        return require( '../lib/' + path );
-      }
-
     };
 
     // mock a transport
@@ -481,7 +438,7 @@ describe( 'Fling Receiver', function () {
       payload:  {
         jsonrpc: '2.0',
         id:      requestId,
-        method:  'domain.module1.module2.action',
+        method:  'rootModule.action',
         params:  { some: 'values', here: 0 }
       },
       response: function ( response ) {
@@ -490,7 +447,7 @@ describe( 'Fling Receiver', function () {
           assert.strictEqual( response.jsonrpc, '2.0' );
           assert.strictEqual( response.id, requestId );
           assert.strictEqual( response.error, undefined );
-          assert.deepEqual( response.result, responseData );
+          assert.deepEqual( response.result, rootModuleResponse );
           done();
         } catch ( e ) {
           done( e );
@@ -500,33 +457,16 @@ describe( 'Fling Receiver', function () {
 
   } );
 
-  it( 'should respond to a request event with the RPC module codes', function ( done ) {
+  it( 'should respond to a request event with the RPC module error codes', function ( done ) {
 
     flingReceiver = new FlingReceiver( {
-      baseDir: '/base/dir'
+      baseDir: __dirname + '/rpcModules'
     } );
 
     var requestId = new Date().getTime();
 
     var onRequestFunc = function () {
       // NO-OP
-    };
-
-    var errorMessage = 'could not find the thing you wanted';
-
-    // mock the RPC module
-    flingReceiver._require = function ( path ) {
-
-      if ( path === '/base/dir/domain/module1/module2' ) {
-        return {
-          'action': function ( params, done ) {
-            done( 404, errorMessage );
-          }
-        };
-      } else {
-        return require( '../lib/' + path );
-      }
-
     };
 
     // mock a transport
@@ -544,7 +484,7 @@ describe( 'Fling Receiver', function () {
       payload:  {
         jsonrpc: '2.0',
         id:      requestId,
-        method:  'domain.module1.module2.action',
+        method:  'errorModule.action',
         params:  { some: 'values', here: 0 }
       },
       response: function ( response ) {
@@ -554,8 +494,8 @@ describe( 'Fling Receiver', function () {
           assert.strictEqual( response.id, requestId );
           assert.strictEqual( typeof response.error, 'object' );
           assert.strictEqual( response.error.code, 404 );
-          assert.strictEqual( response.error.message, errorMessage );
-          assert.strictEqual( response.error.data, null );
+          assert.strictEqual( response.error.message, 'you should see this in error.message' );
+          assert.deepEqual( response.error.data, { string: 'you should see this in error.message.data.string' } );
           assert.strictEqual( response.result, undefined );
           done();
         } catch ( e ) {
@@ -567,3 +507,7 @@ describe( 'Fling Receiver', function () {
   } );
 
 } );
+
+function stringFormat( input ) {
+  return JSON.stringify( input, null, 20 );
+}

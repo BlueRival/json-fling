@@ -1,45 +1,37 @@
 "use strict";
 
-var lastDone = null;
-var lastExpressCallback = null;
-var express = {
-  post: function ( url, jsonHandler, callback ) {
-    lastExpressCallback = callback;
-    express.routes = [
-      { path: url }
-    ];
-  },
-  json: function () {
-    // NO-OP
-  }
-};
+var express = require( 'express' );
+var http = require( 'http' );
+var request = require( 'request' );
 
-var req = {
-  body: ''
-};
-var res = {
-  writeHead: function ( code, headers ) {
-    // NO-OP
-  },
-  end:       function ( payload ) {
-    if ( lastDone ) {
-      lastDone( JSON.parse( payload ) );
-    }
-  }
-};
+var httpServer = null;
+var server = express();
 
 module.exports = {
+  init:           function ( done ) {
+    httpServer = http.createServer( server ).listen( 8080, done );
+  },
+  dinit:          function ( done ) {
+    httpServer.close( done );
+  },
   constructor:    require( '../lib/transport.receiver.express.js' ),
   config:         {
-    express: express,
+    express: server,
     url:     '/rpc'
   },
   requestEmitter: function ( payload, done ) {
 
-    req.body = payload;
-    lastDone = done;
-
-    setImmediate( lastExpressCallback, req, res );
+    request( {
+      url:    'http://localhost:8080/rpc',
+      json:   payload,
+      method: 'POST'
+    }, function ( err, response, body ) {
+      if ( err ) {
+        done( null );
+      } else {
+        done( body );
+      }
+    } );
 
   }
 };

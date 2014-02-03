@@ -29,6 +29,22 @@ function generateIntegrationTests( name ) {
 
     var transport = null;
 
+    before( function ( done ) {
+      if ( typeof params.init === 'function' ) {
+        params.init( done );
+      } else {
+        done();
+      }
+    } );
+
+    after( function ( done ) {
+      if ( typeof params.dinit === 'function' ) {
+        params.dinit( done );
+      } else {
+        done();
+      }
+    } );
+
     it( 'should take an object for a config', function () {
       assert.strictEqual( typeof config, 'object' );
     } );
@@ -97,11 +113,17 @@ function generateIntegrationTests( name ) {
               assert.strictEqual( response.method, undefined );
               assert.strictEqual( response.error, undefined );
               assert.deepEqual( objToString( response.result ), objToString( {
-                some:      'string',
-                an:        [ 'array' ],
-                anInteger: 1,
-                another:   {
+                some:         'string',
+                an:           [ 'array' ],
+                anInteger:    1,
+                another:      {
                   object: 'here'
+                },
+                injectedData: {
+                  you: ['should'],
+                  see: {
+                    this: 'data '
+                  }
                 }
               } ) );
 
@@ -133,6 +155,13 @@ function fakeReceiver( done ) {
       assert.strictEqual( typeof request.payload.method, 'string' );
       assert.ok( request.payload.hasOwnProperty( 'id' ) );
       assert.ok( request.payload.hasOwnProperty( 'params' ) );
+
+      request.payload.params.injectedData = {
+        you: ['should'],
+        see: {
+          this: 'data '
+        }
+      };
 
       setImmediate( function () {
         request.response( {
