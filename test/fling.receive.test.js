@@ -129,7 +129,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -180,7 +180,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -231,7 +231,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -277,7 +277,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -331,7 +331,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -383,7 +383,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -395,7 +395,7 @@ describe( 'Fling Receiver', function () {
 				try {
 
 					assert.deepEqual( lastAuthorization, {
-						agentId: 'sess_1234567890',
+						agent: 'sess_1234567890',
 						payload: {
 							jsonrpc: '2.0',
 							id:      requestId,
@@ -449,7 +449,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
@@ -460,7 +460,7 @@ describe( 'Fling Receiver', function () {
 
 				try {
 					assert.deepEqual( lastAuthorization, {
-						agentId: 'sess_1234567890',
+						agent: 'sess_1234567890',
 						payload: {
 							jsonrpc: '2.0',
 							id:      requestId,
@@ -504,7 +504,7 @@ describe( 'Fling Receiver', function () {
 
 		// simulate a request event on the mock transport
 		onRequestFunc( {
-			agentId:  'sess_1234567890',
+			agent:  'sess_1234567890',
 			payload:  {
 				jsonrpc: '2.0',
 				id:      requestId,
