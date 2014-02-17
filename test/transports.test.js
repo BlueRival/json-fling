@@ -3,7 +3,7 @@
 var assert = require( 'assert' );
 
 describe( 'transports.receiver', function () {
-  generateIntegrationTests( 'transport.receiver.express' );
+	generateIntegrationTests( 'transport.receiver.express' );
 } );
 
 //describe( 'transports.sender', function () {
@@ -19,165 +19,253 @@ describe( 'transports.receiver', function () {
  */
 function generateIntegrationTests( name ) {
 
-  describe( name, function () {
+	describe( name, function () {
 
-    var params = require( './' + name );
+		var params = require( './' + name );
 
-    var Transport = params.constructor;
-    var config = params.config;
-    var requestEmitter = params.requestEmitter;
+		var Transport = params.constructor;
+		var config = params.config;
+		var requestEmitter = params.requestEmitter;
 
-    var transport = null;
+		var transport = null;
 
-    before( function ( done ) {
-      if ( typeof params.init === 'function' ) {
-        params.init( done );
-      } else {
-        done();
-      }
-    } );
+		before( function ( done ) {
+			if ( typeof params.init === 'function' ) {
+				params.init( done );
+			} else {
+				done();
+			}
+		} );
 
-    after( function ( done ) {
-      if ( typeof params.dinit === 'function' ) {
-        params.dinit( done );
-      } else {
-        done();
-      }
-    } );
+		after( function ( done ) {
+			if ( typeof params.dinit === 'function' ) {
+				params.dinit( done );
+			} else {
+				done();
+			}
+		} );
 
-    it( 'should take an object for a config', function () {
-      assert.strictEqual( typeof config, 'object' );
-    } );
+		it( 'should take an object for a config', function () {
+			assert.strictEqual( typeof config, 'object' );
+		} );
 
-    it( 'should have a requestEmitter function to simulate input on the transport', function () {
-      assert.strictEqual( typeof requestEmitter, 'function' );
-    } );
+		it( 'should have a requestEmitter function to simulate input on the transport', function () {
+			assert.strictEqual( typeof requestEmitter, 'function' );
+		} );
 
-    it( 'should be a constructor', function () {
-      assert.strictEqual( typeof Transport, 'function' );
-    } );
+		it( 'should be a constructor', function () {
+			assert.strictEqual( typeof Transport, 'function' );
+		} );
 
-    it( 'should instantiate', function () {
-      transport = new Transport( config );
-    } );
+		it( 'should instantiate w/ defaults', function () {
+			transport = new Transport( config );
+		} );
 
-    it( 'should init', function ( done ) {
-      transport.init( function ( err ) {
-        try {
-          assert.ifError( err );
-          done();
-        } catch ( e ) {
-          done( e );
-        }
-      } );
-    } );
+		it( 'should init w/ defaults', function ( done ) {
+			transport.init( function ( err ) {
+				try {
+					assert.ifError( err );
+					done();
+				} catch ( e ) {
+					done( e );
+				}
+			} );
+		} );
 
-    it( 'should dinit', function ( done ) {
-      transport.dinit( function ( err ) {
-        try {
-          assert.ifError( err );
-          done();
-        } catch ( e ) {
-          done( e );
-        }
-      } );
-    } );
+		it( 'should emit a properly formatted request w/ defaults', function ( done ) {
 
-    it( 'should emit a properly formatted request', function ( done ) {
+			try {
 
-      try {
+				// simulate adding the transport instance to a FlingerReceiver instance
+				transport.on( 'request', fakeReceiver( done ) );
 
-        // simulate adding the transport instance to a FlingerReceiver instance
-        transport.on( 'request', fakeReceiver( done ) );
+				// simulate a request payload delivered to the transport, and the response
+				requestEmitter( {
+						jsonrpc: '2.0',
+						id:      100,
+						method:  'test.module1.module2.action',
+						params:  {
+							some:      'string',
+							an:        [ 'array' ],
+							anInteger: 1,
+							another:   {
+								object: 'here'
+							}
+						}
+					},
+					function ( response ) {
 
-        // simulate a request payload delivered to the transport, and the response
-        requestEmitter( {
-            jsonrpc: '2.0',
-            id:      100,
-            method:  'test.module1.module2.action',
-            params:  {
-              some:      'string',
-              an:        [ 'array' ],
-              anInteger: 1,
-              another:   {
-                object: 'here'
-              }
-            }
-          },
-          function ( response ) {
+						try {
 
-            try {
+							assert.strictEqual( typeof response, 'object' );
+							assert.strictEqual( response.id, 100 );
+							assert.strictEqual( response.method, undefined );
+							assert.strictEqual( response.error, undefined );
+							assert.deepEqual( objToString( response.result ), objToString( {
+								some:         'string',
+								an:           [ 'array' ],
+								anInteger:    1,
+								another:      {
+									object: 'here'
+								},
+								injectedData: {
+									you: ['should'],
+									see: {
+										this: 'data '
+									}
+								}
+							} ) );
 
-              assert.strictEqual( typeof response, 'object' );
-              assert.strictEqual( response.id, 100 );
-              assert.strictEqual( response.method, undefined );
-              assert.strictEqual( response.error, undefined );
-              assert.deepEqual( objToString( response.result ), objToString( {
-                some:         'string',
-                an:           [ 'array' ],
-                anInteger:    1,
-                another:      {
-                  object: 'here'
-                },
-                injectedData: {
-                  you: ['should'],
-                  see: {
-                    this: 'data '
-                  }
-                }
-              } ) );
+							done();
+						} catch ( e ) {
+							done( e );
+						}
 
-              done();
-            } catch ( e ) {
-              done( e );
-            }
+					} );
 
-          } );
+			} catch ( e ) {
+				done( e );
+			}
+		} );
 
-      } catch ( e ) {
-        done( e );
-      }
-    } );
+		it( 'should dinit w/ defaults', function ( done ) {
+			transport.dinit( function ( err ) {
+				try {
+					assert.ifError( err );
+					done();
+				} catch ( e ) {
+					done( e );
+				}
+			} );
+		} );
 
-  } );
+		var authenticationCount = 0;
+		it( 'should instantiate w/ authentication', function () {
+			config.authenticate = function ( payload, done ) {
+				done( '100' );
+				authenticationCount++;
+			};
+			transport = new Transport( config );
+		} );
+
+		it( 'should init w/ authentication', function ( done ) {
+			transport.init( function ( err ) {
+				try {
+					assert.ifError( err );
+					done();
+				} catch ( e ) {
+					done( e );
+				}
+			} );
+		} );
+
+		it( 'should emit a properly formatted request w/ authentication', function ( done ) {
+
+			try {
+
+				// simulate adding the transport instance to a FlingerReceiver instance
+				transport.on( 'request', fakeReceiver( done ) );
+
+				// simulate a request payload delivered to the transport, and the response
+				requestEmitter( {
+						jsonrpc: '2.0',
+						id:      100,
+						method:  'test.module1.module2.action',
+						params:  {
+							some:      'string',
+							an:        [ 'array' ],
+							anInteger: 1,
+							another:   {
+								object: 'here'
+							}
+						}
+					},
+					function ( response ) {
+
+						try {
+
+							assert.strictEqual( authenticationCount, 1 );
+							assert.strictEqual( typeof response, 'object' );
+							assert.strictEqual( response.id, 100 );
+							assert.strictEqual( response.method, undefined );
+							assert.strictEqual( response.error, undefined );
+							assert.deepEqual( objToString( response.result ), objToString( {
+								some:         'string',
+								an:           [ 'array' ],
+								anInteger:    1,
+								another:      {
+									object: 'here'
+								},
+								injectedData: {
+									you: ['should'],
+									see: {
+										this: 'data '
+									}
+								}
+							} ) );
+
+							done();
+						} catch ( e ) {
+							done( e );
+						}
+
+					} );
+
+			} catch ( e ) {
+				done( e );
+			}
+		} );
+
+		it( 'should dinit w/ authentication', function ( done ) {
+			transport.dinit( function ( err ) {
+				try {
+					assert.ifError( err );
+					done();
+				} catch ( e ) {
+					done( e );
+				}
+			} );
+		} );
+
+	} );
 }
 
 function fakeReceiver( done ) {
 
-  return function ( request ) {
-    try {
+	return function ( request ) {
+		try {
 
-      assert.strictEqual( typeof request, 'object' );
+			assert.strictEqual( typeof request, 'object' );
 
-      assert.strictEqual( typeof request.response, 'function' );
+			assert.strictEqual( typeof request.response, 'function' );
 
-      assert.strictEqual( typeof request.payload, 'object' );
-      assert.strictEqual( typeof request.payload.method, 'string' );
-      assert.ok( request.payload.hasOwnProperty( 'id' ) );
-      assert.ok( request.payload.hasOwnProperty( 'params' ) );
+			assert.strictEqual( typeof request.payload, 'object' );
+			assert.strictEqual( typeof request.payload.method, 'string' );
+			assert.ok( request.payload.hasOwnProperty( 'id' ) );
+			assert.ok( request.payload.hasOwnProperty( 'params' ) );
 
-      request.payload.params.injectedData = {
-        you: ['should'],
-        see: {
-          this: 'data '
-        }
-      };
+			request.payload.params.injectedData = {
+				you: ['should'],
+				see: {
+					this: 'data '
+				}
+			};
 
-      setImmediate( function () {
-        request.response( {
-          jsonrpc: '2.0',
-          id:      request.payload.id,
-          result:  request.payload.params
-        } );
-      } );
+			setImmediate( function () {
+				request.response( {
+					jsonrpc: '2.0',
+					id:      request.payload.id,
+					result:  request.payload.params
+				} );
+			} );
 
-    } catch ( e ) {
-      done( e );
-    }
-  };
+		} catch ( e ) {
+			done( e );
+		}
+	};
 
 }
 
 function objToString( obj ) {
-  return JSON.stringify( obj, null, 2 );
+	return JSON.stringify( obj, null, 2 );
 }
