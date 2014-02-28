@@ -1,6 +1,7 @@
 "use strict";
 
 var assert = require( 'assert' );
+var FlingReceiver = require( '../lib/receive' );
 
 describe( 'transports.receiver', function () {
 	generateIntegrationTests( 'transport.receiver.express' );
@@ -76,14 +77,16 @@ function generateIntegrationTests( name ) {
 
 			try {
 
-				// simulate adding the transport instance to a FlingerReceiver instance
-				transport.on( 'request', fakeReceiver( done ) );
+				var flingReceiver = new FlingReceiver( {
+					baseDir: __dirname + '/rpcModules'
+				} );
+				flingReceiver.addTransport( transport );
 
 				// simulate a request payload delivered to the transport, and the response
 				requestEmitter( {
 						jsonrpc: '2.0',
 						id:      100,
-						method:  'test.module1.module2.action',
+						method:  'echoModule.action2',
 						params:  {
 							some:      'string',
 							an:        [ 'array' ],
@@ -102,17 +105,11 @@ function generateIntegrationTests( name ) {
 							assert.strictEqual( response.method, undefined );
 							assert.strictEqual( response.error, undefined );
 							assert.deepEqual( objToString( response.result ), objToString( {
-								some:         'string',
-								an:           [ 'array' ],
-								anInteger:    1,
-								another:      {
+								some:      'string',
+								an:        [ 'array' ],
+								anInteger: 1,
+								another:   {
 									object: 'here'
-								},
-								injectedData: {
-									you: ['should'],
-									see: {
-										this: 'data '
-									}
 								}
 							} ) );
 
@@ -163,14 +160,16 @@ function generateIntegrationTests( name ) {
 
 			try {
 
-				// simulate adding the transport instance to a FlingerReceiver instance
-				transport.on( 'request', fakeReceiver( done ) );
+				var flingReceiver = new FlingReceiver( {
+					baseDir: __dirname + '/rpcModules'
+				} );
+				flingReceiver.addTransport( transport );
 
 				// simulate a request payload delivered to the transport, and the response
 				requestEmitter( {
 						jsonrpc: '2.0',
 						id:      100,
-						method:  'test.module1.module2.action',
+						method:  'echoModule.action2',
 						params:  {
 							some:      'string',
 							an:        [ 'array' ],
@@ -190,17 +189,11 @@ function generateIntegrationTests( name ) {
 							assert.strictEqual( response.method, undefined );
 							assert.strictEqual( response.error, undefined );
 							assert.deepEqual( objToString( response.result ), objToString( {
-								some:         'string',
-								an:           [ 'array' ],
-								anInteger:    1,
-								another:      {
+								some:      'string',
+								an:        [ 'array' ],
+								anInteger: 1,
+								another:   {
 									object: 'here'
-								},
-								injectedData: {
-									you: ['should'],
-									see: {
-										this: 'data '
-									}
 								}
 							} ) );
 
@@ -228,42 +221,6 @@ function generateIntegrationTests( name ) {
 		} );
 
 	} );
-}
-
-function fakeReceiver( done ) {
-
-	return function ( request ) {
-		try {
-
-			assert.strictEqual( typeof request, 'object' );
-
-			assert.strictEqual( typeof request.response, 'function' );
-
-			assert.strictEqual( typeof request.payload, 'object' );
-			assert.strictEqual( typeof request.payload.method, 'string' );
-			assert.ok( request.payload.hasOwnProperty( 'id' ) );
-			assert.ok( request.payload.hasOwnProperty( 'params' ) );
-
-			request.payload.params.injectedData = {
-				you: ['should'],
-				see: {
-					this: 'data '
-				}
-			};
-
-			setImmediate( function () {
-				request.response( {
-					jsonrpc: '2.0',
-					id:      request.payload.id,
-					result:  request.payload.params
-				} );
-			} );
-
-		} catch ( e ) {
-			done( e );
-		}
-	};
-
 }
 
 function objToString( obj ) {

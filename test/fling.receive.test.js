@@ -1,8 +1,15 @@
 "use strict";
 
+var AbstractReceiverTransport = require( '../lib/transport.receiver.abstract' );
 var assert = require( 'assert' );
-
 var FlingReceiver = require( '../lib/receive' );
+var Request = require( '../lib/request' );
+var Response = require( '../lib/response' );
+
+var FakeTransport = function () {
+	AbstractReceiverTransport.apply( this, arguments );
+};
+require( 'util' ).inherits( FakeTransport, AbstractReceiverTransport );
 
 var rootModuleResponse = {
 	module: 'root',
@@ -100,7 +107,7 @@ describe( 'Fling Receiver', function () {
 		flingReceiver.addTransport( transport );
 		flingReceiver.addTransport( transport );
 
-		assert.strictEqual( onField, 'request' );
+		assert.strictEqual( onField, 'rpc' );
 		assert.strictEqual( typeof onFunc, 'function' );
 		assert.strictEqual( onCount, 1 );
 
@@ -114,45 +121,41 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
-
 		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
+
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'rootModule.missingAction',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+
+		// catch the response
+		response.on( 'send', function ( payload ) {
+
+			try {
+
+				assert.strictEqual( payload.jsonrpc, '2.0' );
+				assert.strictEqual( payload.id, requestId );
+				assert.strictEqual( typeof payload.error, 'object' );
+				assert.strictEqual( payload.error.code, 404 );
+				assert.strictEqual( payload.error.message, 'method action not found' );
+				assert.strictEqual( payload.error.data, null );
+
+				done();
+			} catch ( e ) {
+				done( e );
 			}
+
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'rootModule.missingAction',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
-
-				try {
-
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( typeof response.error, 'object' );
-					assert.strictEqual( response.error.code, 404 );
-					assert.strictEqual( response.error.message, 'Method action not found' );
-					assert.strictEqual( response.error.data, null );
-
-					done();
-				} catch ( e ) {
-					done( e );
-				}
-
-			}
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );
@@ -165,45 +168,39 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'missingModule.missingAction',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+
+		// catch the response
+		response.on( 'send', function ( payload ) {
+
+			try {
+
+				assert.strictEqual( payload.jsonrpc, '2.0' );
+				assert.strictEqual( payload.id, requestId );
+				assert.strictEqual( typeof payload.error, 'object' );
+				assert.strictEqual( payload.error.code, 404 );
+				assert.strictEqual( payload.error.data, null );
+				assert.strictEqual( payload.error.message, 'module not found' );
+
+				done();
+			} catch ( e ) {
+				done( e );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'missingModule.missingAction',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
-
-				try {
-
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( typeof response.error, 'object' );
-					assert.strictEqual( response.error.code, 404 );
-					assert.strictEqual( response.error.data, null );
-					assert.strictEqual( response.error.message, 'Module not found' );
-
-					done();
-				} catch ( e ) {
-					done( e );
-				}
-
-			}
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );
@@ -216,40 +213,42 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'rootModule.action',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+
+		response.on( 'send', function ( payload ) {
+
+			try {
+				assert.strictEqual( payload.jsonrpc, '2.0' );
+				assert.strictEqual( payload.id, requestId );
+				assert.strictEqual( payload.error, undefined );
+				assert.deepEqual( stringFormat( payload.result ), stringFormat( {
+					some:         'values',
+					here:         0,
+					injectedData: {
+						you: ['should'],
+						see: {
+							this: 'data '
+						}
+					} } ) );
+				done();
+			} catch ( e ) {
+				done( e );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'rootModule.action',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
-
-				try {
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( response.error, undefined );
-					assert.deepEqual( stringFormat( response.result ), stringFormat( rootModuleResponse ) );
-					done();
-				} catch ( e ) {
-					done( e );
-				}
-			}
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );
@@ -262,49 +261,44 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'echoModule.action',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+
+		response.on( 'send', function ( response ) {
+
+			try {
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( response.error, undefined );
+				assert.deepEqual( stringFormat( response.result ), stringFormat( {
+					yourParams: {
+						some: 'values',
+						here: 0
+					},
+					newData:    {
+						hi: 'there'
+					}
+				} ) );
+				done();
+			} catch ( e ) {
+				done( e );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'echoModule.action',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
-
-				try {
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( response.error, undefined );
-					assert.deepEqual( stringFormat( response.result ), stringFormat( {
-						yourParams: {
-							some: 'values',
-							here: 0
-						},
-						newData:    {
-							hi: 'there'
-						}
-					} ) );
-					done();
-				} catch ( e ) {
-					done( e );
-				}
-			}
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
+
 
 	} );
 
@@ -316,41 +310,34 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'dir1.dir2.nestedModule.action',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+
+		response.on( 'send', function ( response ) {
+
+			try {
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( response.error, undefined );
+				assert.deepEqual( stringFormat( response.result ), stringFormat( nestedModuleResponse ) );
+				done();
+			} catch ( e ) {
+				done( e );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'dir1.dir2.nestedModule.action',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
-
-				try {
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( response.error, undefined );
-					assert.deepEqual( stringFormat( response.result ),
-						stringFormat( nestedModuleResponse ) );
-					done();
-				} catch ( e ) {
-					done( e );
-				}
-			}
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );
@@ -368,55 +355,54 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var transport = new FakeTransport( {
+			authenticate: function ( context, done ) {
+				done( {agentId: requestId} );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'rootModule.action',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
+		flingReceiver.addTransport( transport );
 
-				try {
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'rootModule.action',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
 
-					assert.deepEqual( lastAuthorization, {
-						agent: 'sess_1234567890',
-						payload: {
-							jsonrpc: '2.0',
-							id:      requestId,
-							method:  'rootModule.action',
-							params:  { some: 'values', here: 0 }
-						}
-					} );
+		var response = new Response( requestId );
 
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( typeof response.error, 'object' );
-					assert.strictEqual( response.error.code, 401 );
-					assert.strictEqual( response.error.message, 'Not authorized for specified method' );
-					assert.strictEqual( response.error.data, 'rootModule.action' );
+		response.on( 'send', function ( response ) {
 
-					assert.deepEqual( response.result, undefined );
-					done();
-				} catch ( e ) {
-					done( e );
-				}
+			try {
+
+				assert.deepEqual( lastAuthorization.getPayload(), {
+					jsonrpc: '2.0',
+					id:      requestId,
+					method:  'rootModule.action',
+					params:  { some: 'values', here: 0 }
+				} );
+
+				assert.strictEqual( stringFormat( lastAuthorization.getAgent() ), stringFormat( {agentId: requestId} ) );
+
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( typeof response.error, 'object' );
+				assert.strictEqual( response.error.code, 401 );
+				assert.strictEqual( response.error.message, 'not authorized for specified method' );
+				assert.strictEqual( response.error.data, 'rootModule.action' );
+
+				assert.deepEqual( response.result, undefined );
+				done();
+			} catch ( e ) {
+				done( e );
 			}
+		} );
+
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );
@@ -434,49 +420,58 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var transport = new FakeTransport( {
+			authenticate: function ( context, done ) {
+				done( {agentId: requestId} );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'rootModule.action',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
+		flingReceiver.addTransport( transport );
 
-				try {
-					assert.deepEqual( lastAuthorization, {
-						agent: 'sess_1234567890',
-						payload: {
-							jsonrpc: '2.0',
-							id:      requestId,
-							method:  'rootModule.action',
-							params:  { some: 'values', here: 0 }
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'rootModule.action',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+
+		response.on( 'send', function ( response ) {
+
+			try {
+
+				assert.strictEqual( stringFormat( lastAuthorization.getAgent() ), stringFormat( {agentId: requestId} ) );
+
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( typeof response.error, 'undefined' );
+
+				assert.deepEqual( stringFormat( response ), stringFormat( {
+					jsonrpc: '2.0',
+					id:      requestId,
+					result:  {
+						some:         'values',
+						here:         0,
+						injectedData: {
+							you: ['should'],
+							see: {
+								this: 'data '
+							}
 						}
-					} );
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( response.error, undefined );
-					assert.deepEqual( response.result, rootModuleResponse );
-					done();
-				} catch ( e ) {
-					done( e );
-				}
+					}
+				} ) );
+
+				done();
+			} catch ( e ) {
+				done( e );
 			}
+		} );
+
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );
@@ -489,43 +484,363 @@ describe( 'Fling Receiver', function () {
 
 		var requestId = new Date().getTime();
 
-		var onRequestFunc = function () {
-			// NO-OP
-		};
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
 
-		// mock a transport
-		flingReceiver.addTransport( {
-			on: function ( field, func ) {
-				if ( field === 'request' ) {
-					onRequestFunc = func;
-				}
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'errorModule.action',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+		response.on( 'send', function ( response ) {
+
+			try {
+
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( typeof response.error, 'object' );
+				assert.strictEqual( response.error.code, 404 );
+				assert.strictEqual( response.error.message, 'you should see this in error.message' );
+				assert.strictEqual( response.error.data.string, 'you should see this in error.message.data.string' );
+
+				assert.deepEqual( response.result, undefined );
+				done();
+			} catch ( e ) {
+				done( e );
 			}
 		} );
 
-		// simulate a request event on the mock transport
-		onRequestFunc( {
-			agent:  'sess_1234567890',
-			payload:  {
-				jsonrpc: '2.0',
-				id:      requestId,
-				method:  'errorModule.action',
-				params:  { some: 'values', here: 0 }
-			},
-			response: function ( response ) {
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
+		} );
 
-				try {
-					assert.strictEqual( response.jsonrpc, '2.0' );
-					assert.strictEqual( response.id, requestId );
-					assert.strictEqual( typeof response.error, 'object' );
-					assert.strictEqual( response.error.code, 404 );
-					assert.strictEqual( response.error.message, 'you should see this in error.message' );
-					assert.deepEqual( response.error.data, { string: 'you should see this in error.message.data.string' } );
-					assert.strictEqual( response.result, undefined );
-					done();
-				} catch ( e ) {
-					done( e );
-				}
+	} );
+
+	it( 'should respond to a request event with the RPC module error codes with multiple errors', function ( done ) {
+
+		flingReceiver = new FlingReceiver( {
+			baseDir: __dirname + '/rpcModules'
+		} );
+
+		var requestId = new Date().getTime();
+
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
+
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'errorModule.actionMultiple',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+		response.on( 'send', function ( response ) {
+
+			try {
+
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( typeof response.error, 'object' );
+				assert.strictEqual( response.error.code, 400 );
+				assert.strictEqual( response.error.message, 'multiple errors' );
+				assert.ok( Array.isArray( response.error.data ) );
+				assert.strictEqual( response.error.data.length, 2 );
+
+				assert.strictEqual( response.error.data[0].code, 404 );
+				assert.strictEqual( response.error.data[1].code, 404 );
+
+				assert.strictEqual( response.error.data[0].message, 'you should see this in error.data[0].message' );
+				assert.strictEqual( response.error.data[1].message, 'you should see this in error.data[1].message' );
+
+				assert.strictEqual( response.error.data[0].data.string, 'you should see this in error.data[0].message.data.string' );
+				assert.strictEqual( response.error.data[1].data.string, 'you should see this in error.data[1].message.data.string' );
+
+				assert.deepEqual( response.result, undefined );
+				done();
+			} catch ( e ) {
+				done( e );
 			}
+		} );
+
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
+		} );
+
+	} );
+
+	it( 'should respond to a request event with the RPC module error codes even when payload passed to send', function ( done ) {
+
+		flingReceiver = new FlingReceiver( {
+			baseDir: __dirname + '/rpcModules'
+		} );
+
+		var requestId = new Date().getTime();
+
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
+
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'errorModule.actionSendPayload',
+			params:  { some: 'values', here: 0 }
+		}, {some: 'context'} );
+
+		var response = new Response( requestId );
+		response.on( 'send', function ( response ) {
+
+			try {
+
+				assert.strictEqual( response.jsonrpc, '2.0' );
+				assert.strictEqual( response.id, requestId );
+				assert.strictEqual( typeof response.error, 'object' );
+				assert.strictEqual( response.error.code, 400 );
+				assert.strictEqual( response.error.message, 'multiple errors' );
+				assert.ok( Array.isArray( response.error.data ) );
+				assert.strictEqual( response.error.data.length, 2 );
+
+				assert.strictEqual( response.error.data[0].code, 404 );
+				assert.strictEqual( response.error.data[1].code, 404 );
+
+				assert.strictEqual( response.error.data[0].message, 'you should see this in error.data[0].message' );
+				assert.strictEqual( response.error.data[1].message, 'you should see this in error.data[1].message' );
+
+				assert.strictEqual( response.error.data[0].data.string, 'you should see this in error.data[0].message.data.string' );
+				assert.strictEqual( response.error.data[1].data.string, 'you should see this in error.data[1].message.data.string' );
+
+				assert.deepEqual( response.result, undefined );
+				done();
+			} catch ( e ) {
+				done( e );
+			}
+		} );
+
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
+		} );
+
+	} );
+
+	it( 'should use middleware, and middleware should be able to modify the request', function ( done ) {
+
+		var doned = false;
+		var _done = function ( e ) {
+			if ( doned ) {
+				return;
+			}
+			doned = true;
+			if ( e ) {
+				done( e );
+			} else {
+				done();
+			}
+		};
+
+		flingReceiver = new FlingReceiver( {
+			baseDir: __dirname + '/rpcModules'
+		} );
+
+		var mw1Count = 0;
+		var mw2Count = 0;
+		var mw3Count = 0;
+
+		flingReceiver.use( function ( request, response, next ) {
+			try {
+				assert.ok( request instanceof Request );
+				assert.ok( response instanceof Response );
+				assert.strictEqual( mw1Count, 0 );
+				assert.strictEqual( mw2Count, 0 );
+				assert.strictEqual( mw3Count, 0 );
+				assert.strictEqual( request.getParams(), null );
+				request.getPayload().params = { one: true };
+				mw1Count++;
+				next();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		flingReceiver.use( [ 'not really a middleware ' ] );
+
+		flingReceiver.use( function ( request, response, next ) {
+			try {
+				assert.ok( request instanceof Request );
+				assert.ok( response instanceof Response );
+				assert.strictEqual( mw1Count, 1 );
+				assert.strictEqual( mw2Count, 0 );
+				assert.strictEqual( mw3Count, 0 );
+				assert.notStrictEqual( request.getParams(), null );
+				assert.strictEqual( typeof request.getParams(), 'object' );
+				assert.strictEqual( request.getParams().one, true );
+				request.getParams().two = true;
+				mw2Count++;
+				next();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		flingReceiver.use( function ( request, response, next ) {
+			try {
+				assert.ok( request instanceof Request );
+				assert.ok( response instanceof Response );
+				assert.strictEqual( mw1Count, 1 );
+				assert.strictEqual( mw2Count, 1 );
+				assert.strictEqual( mw3Count, 0 );
+				assert.notStrictEqual( request.getParams(), null );
+				assert.strictEqual( typeof request.getParams(), 'object' );
+				assert.strictEqual( request.getParams().one, true );
+				assert.strictEqual( request.getParams().two, true );
+				assert.strictEqual( request.getParams().three, undefined );
+				mw3Count++;
+				next();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		var requestId = new Date().getTime();
+
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
+
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'rootModule.action',
+			params:  null
+		} );
+
+		var response = new Response( requestId );
+
+		response.on( 'send', function () {
+			try {
+
+				assert.strictEqual( mw1Count, 1 );
+				assert.strictEqual( mw2Count, 1 );
+				assert.strictEqual( mw3Count, 1 );
+
+				_done();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
+		} );
+
+	} );
+
+	it( 'should use middleware, and middleware should be able to forward a call to a new method', function ( done ) {
+
+		var doned = false;
+		var _done = function ( e ) {
+			if ( doned ) {
+				return;
+			}
+			doned = true;
+			if ( e ) {
+				done( e );
+			} else {
+				done();
+			}
+		};
+
+		flingReceiver = new FlingReceiver( {
+			baseDir: __dirname + '/rpcModules'
+		} );
+
+		var mw1Count = 0;
+		var mw2Count = 0;
+		var mw3Count = 0;
+
+		flingReceiver.use( function ( request, response, next ) {
+			try {
+				assert.ok( request instanceof Request );
+				assert.ok( response instanceof Response );
+				mw1Count++;
+				next();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		flingReceiver.use( function ( request, response, next ) {
+			try {
+				assert.ok( request instanceof Request );
+				assert.ok( response instanceof Response );
+				mw2Count++;
+
+				if ( request.getMethod() === 'rootModule.action' ) {
+					next( {
+						forward: 'rootModule.action2'
+					} );
+				} else {
+					next();
+				}
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		flingReceiver.use( function ( request, response, next ) {
+			try {
+				assert.ok( request instanceof Request );
+				assert.ok( response instanceof Response );
+				assert.strictEqual( mw1Count, 2 );
+				assert.strictEqual( mw2Count, 2 );
+				assert.strictEqual( mw3Count, 0 );
+				mw3Count++;
+				next();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		var requestId = new Date().getTime();
+
+		var transport = new FakeTransport();
+		flingReceiver.addTransport( transport );
+
+		var request = new Request( {
+			jsonrpc: '2.0',
+			id:      requestId,
+			method:  'rootModule.action',
+			params:  null
+		} );
+
+		var response = new Response( requestId );
+
+		response.on( 'send', function ( payload ) {
+			try {
+
+				assert.strictEqual( typeof payload, 'object' );
+				assert.notStrictEqual( payload, null );
+				assert.strictEqual( payload.result.action, 2 );
+
+				assert.strictEqual( mw1Count, 2 );
+				assert.strictEqual( mw2Count, 2 );
+				assert.strictEqual( mw3Count, 1 );
+
+
+				_done();
+			} catch ( e ) {
+				_done( e );
+			}
+		} );
+
+		transport.emit( 'rpc', {
+			request:  request,
+			response: response
 		} );
 
 	} );

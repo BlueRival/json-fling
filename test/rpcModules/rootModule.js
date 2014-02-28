@@ -1,16 +1,21 @@
 "use strict";
 
-module.exports.action = function ( request, done ) {
+module.exports.action = function ( request, response ) {
 
-  request.injectedData = {
-    you: ['should'],
-    see: {
-      this: 'data '
-    }
-  };
+	var output = request.getParams();
+	output.injectedData = {
+		you: ['should'],
+		see: {
+			this: 'data '
+		}
+	};
 
-  done( 200, {
-    module: 'root',
-    other:  [ 'data' ]
-  } );
+	response.send( output );
+
+};
+
+module.exports.action2 = function ( request, response ) {
+
+	response.send( { action: 2 } );
+
 };
