@@ -2,9 +2,11 @@
 
 var assert = require( 'assert' );
 var FlingReceiver = require( '../lib/receive' );
+var AbstractReceiverTransport = require( '../lib/transport.receiver.abstract' );
 
 describe( 'transports.receiver', function () {
 	generateIntegrationTests( 'transport.receiver.express' );
+	generateIntegrationTests( 'transport.receiver.local' );
 } );
 
 //describe( 'transports.sender', function () {
@@ -62,7 +64,12 @@ function generateIntegrationTests( name ) {
 			transport = new Transport( config );
 		} );
 
+		it( 'should inherit the abstract receiver', function () {
+			assert.ok( transport instanceof AbstractReceiverTransport );
+		} );
+
 		it( 'should init w/ defaults', function ( done ) {
+
 			transport.init( function ( err ) {
 				try {
 					assert.ifError( err );
@@ -71,6 +78,7 @@ function generateIntegrationTests( name ) {
 					done( e );
 				}
 			} );
+
 		} );
 
 		it( 'should emit a properly formatted request w/ defaults', function ( done ) {
@@ -96,15 +104,15 @@ function generateIntegrationTests( name ) {
 							}
 						}
 					},
-					function ( response ) {
+					function ( payload ) {
 
 						try {
 
-							assert.strictEqual( typeof response, 'object' );
-							assert.strictEqual( response.id, 100 );
-							assert.strictEqual( response.method, undefined );
-							assert.strictEqual( response.error, undefined );
-							assert.deepEqual( objToString( response.result ), objToString( {
+							assert.strictEqual( typeof payload, 'object' );
+							assert.strictEqual( payload.id, 100 );
+							assert.strictEqual( payload.method, undefined );
+							assert.strictEqual( payload.error, undefined );
+							assert.deepEqual( objToString( payload.result ), objToString( {
 								some:      'string',
 								an:        [ 'array' ],
 								anInteger: 1,
@@ -123,6 +131,7 @@ function generateIntegrationTests( name ) {
 			} catch ( e ) {
 				done( e );
 			}
+
 		} );
 
 		it( 'should dinit w/ defaults', function ( done ) {
