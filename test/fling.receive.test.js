@@ -113,10 +113,14 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event with 404 if method action missing', function ( done ) {
+	it( 'should respond to a request event with 404 if method action missing, and log it', function ( done ) {
 
+		var logs = [];
 		flingReceiver = new FlingReceiver( {
-			baseDir: __dirname + '/rpcModules'
+			baseDir: __dirname + '/rpcModules',
+			scribe: function ( level, message, data ) {
+				logs.push( [level, message, data] );
+			}
 		} );
 
 		var requestId = new Date().getTime();
@@ -137,19 +141,42 @@ describe( 'Fling Receiver', function () {
 		// catch the response
 		response.on( 'send', function ( payload ) {
 
-			try {
+			// give logs time to settle
+			setImmediate( function () {
+				try {
 
-				assert.strictEqual( payload.jsonrpc, '2.0' );
-				assert.strictEqual( payload.id, requestId );
-				assert.strictEqual( typeof payload.error, 'object' );
-				assert.strictEqual( payload.error.code, 404 );
-				assert.strictEqual( payload.error.message, 'method action not found' );
-				assert.strictEqual( payload.error.data, null );
+					assert.strictEqual( logs.length, 2 );
+					assert.strictEqual( logs[0][0], 'info' );
+					assert.ok( logs[0][1].match( /^RPC request: [0-9]+$/ ) );
+					assert.deepEqual( logs[0][2], {
+						jsonrpc: '2.0',
+						id:      requestId,
+						method:  'rootModule.missingAction',
+						params:  { some: 'values', here: 0 }
+					} );
+					assert.strictEqual( logs[1][0], 'info' );
+					assert.ok( logs[1][1].match( /^RPC response: [0-9]+: [0-9]+ms$/ ) );
+					assert.deepEqual( logs[1][2], {
+						jsonrpc: '2.0',
+						id:      requestId,
+						error:   {
+							code:    404,
+							message: 'method action not found',
+							data:    'rootModule.missingAction'
+						}
+					} );
+					assert.strictEqual( payload.jsonrpc, '2.0' );
+					assert.strictEqual( payload.id, requestId );
+					assert.strictEqual( typeof payload.error, 'object' );
+					assert.strictEqual( payload.error.code, 404 );
+					assert.strictEqual( payload.error.message, 'method action not found' );
+					assert.strictEqual( payload.error.data, 'rootModule.missingAction' );
 
-				done();
-			} catch ( e ) {
-				done( e );
-			}
+					done();
+				} catch ( e ) {
+					done( e );
+				}
+			} );
 
 		} );
 
