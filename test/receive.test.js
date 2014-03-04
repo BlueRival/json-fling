@@ -116,11 +116,16 @@ describe( 'Fling Receiver', function () {
 	it( 'should respond to a request event with 404 if method action missing, and log it', function ( done ) {
 
 		var logs = [];
+		var eventedLogs = [];
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules',
 			scribe: function ( level, message, data ) {
 				logs.push( [level, message, data] );
 			}
+		} );
+
+		flingReceiver.on( 'log', function ( entry ) {
+			eventedLogs.push( entry );
 		} );
 
 		var requestId = new Date().getTime();
@@ -146,17 +151,37 @@ describe( 'Fling Receiver', function () {
 				try {
 
 					assert.strictEqual( logs.length, 2 );
-					assert.strictEqual( logs[0][0], 'info' );
+					assert.strictEqual( eventedLogs.length, 2 );
+					assert.strictEqual( logs[0][0], 'debug' );
+					assert.strictEqual( eventedLogs[0].level, 'debug' );
 					assert.ok( logs[0][1].match( /^RPC request: [0-9]+$/ ) );
+					assert.ok( eventedLogs[0].message.match( /^RPC request: [0-9]+$/ ) );
 					assert.deepEqual( logs[0][2], {
 						jsonrpc: '2.0',
 						id:      requestId,
 						method:  'rootModule.missingAction',
 						params:  { some: 'values', here: 0 }
 					} );
-					assert.strictEqual( logs[1][0], 'info' );
+					assert.deepEqual( eventedLogs[0].data, {
+						jsonrpc: '2.0',
+						id:      requestId,
+						method:  'rootModule.missingAction',
+						params:  { some: 'values', here: 0 }
+					} );
+					assert.strictEqual( logs[1][0], 'debug' );
+					assert.strictEqual( eventedLogs[1].level, 'debug' );
 					assert.ok( logs[1][1].match( /^RPC response: [0-9]+: [0-9]+ms$/ ) );
+					assert.ok( eventedLogs[1].message.match( /^RPC response: [0-9]+: [0-9]+ms$/ ) );
 					assert.deepEqual( logs[1][2], {
+						jsonrpc: '2.0',
+						id:      requestId,
+						error:   {
+							code:    404,
+							message: 'method action not found',
+							data:    'rootModule.missingAction'
+						}
+					} );
+					assert.deepEqual( eventedLogs[1].data, {
 						jsonrpc: '2.0',
 						id:      requestId,
 						error:   {
