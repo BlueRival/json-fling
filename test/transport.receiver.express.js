@@ -16,7 +16,7 @@ module.exports = {
 	},
 	constructor:    require( '../lib/transport.receiver.express.js' ),
 	config:         {
-		express: server,
+		app: server,
 		url:     '/rpc'
 	},
 	requestEmitter: function ( payload, done ) {

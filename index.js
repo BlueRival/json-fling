@@ -19,7 +19,7 @@ module.exports.createReceiver = function( params ) {
 	var transConfig = params.transports;
 	var transport;
 
-	var receiver = new fling.Receiver({
+	var receiver = new this.Receiver({
 		baseDir: params.baseDir
 	});
 
