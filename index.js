@@ -12,3 +12,22 @@ module.exports.transports = {
 		Http: require( './lib/transport.sender.http' )
 	}
 };
+
+// convenience method for creating a receiver.
+module.exports.createReceiver = function( params ) {
+
+	var transConfig = params.transports;
+	var transport;
+
+	var receiver = new fling.Receiver({
+		baseDir: params.baseDir
+	});
+
+	if ( transConfig.express ) {
+		transport = new this.transports.receivers.Express( transConfig.express );
+		transport.init( function() {
+			receiver.addTransport( transport );
+		});
+	}
+
+};
