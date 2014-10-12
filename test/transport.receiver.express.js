@@ -9,7 +9,7 @@ var server = express();
 
 module.exports = {
 	init:           function ( done ) {
-		httpServer = http.createServer( server ).listen( 8080, done );
+		httpServer = server.listen( 8080, done );
 	},
 	dinit:          function ( done ) {
 		httpServer.close( done );
