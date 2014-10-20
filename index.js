@@ -17,17 +17,16 @@ module.exports.transports = {
 module.exports.createReceiver = function( params ) {
 
 	var transConfig = params.transports;
-	var transport;
 
 	var receiver = new this.Receiver({
 		baseDir: params.baseDir
 	});
 
-	if ( transConfig.express ) {
-		transport = new this.transports.receivers.Express( transConfig.express );
-		transport.init( function() {
-			receiver.addTransport( transport );
-		});
+	for ( var name in transConfig ) {
+		if ( transConfig.hasOwnProperty( name ) && this.transports.receivers.hasOwnProperty( name ) ) {
+			receiver.addTransport( new this.transports.receivers[ name ]( transConfig[ name ] ) );
+		}
 	}
 
+	return receiver;
 };
