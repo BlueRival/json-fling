@@ -9,14 +9,14 @@ var server = express();
 
 module.exports = {
 	init:           function ( done ) {
-		httpServer = http.createServer( server ).listen( 8080, done );
+		httpServer = server.listen( 8080, done );
 	},
 	dinit:          function ( done ) {
 		httpServer.close( done );
 	},
 	constructor:    require( '../lib/transport.receiver.express.js' ),
 	config:         {
-		express: server,
+		app: server,
 		url:     '/rpc'
 	},
 	requestEmitter: function ( payload, done ) {
