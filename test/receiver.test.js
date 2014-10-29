@@ -2,11 +2,11 @@
 
 var AbstractReceiverTransport = require( '../lib/transport.receiver.abstract' );
 var assert = require( 'assert' );
-var FlingReceiver = require( '../lib/receive' );
+var FlingReceiver = require( '../lib/receiver' );
 var Request = require( '../lib/request' );
 var Response = require( '../lib/response' );
 
-var FakeTransport = function () {
+var FakeTransport = function() {
 	AbstractReceiverTransport.apply( this, arguments );
 };
 require( 'util' ).inherits( FakeTransport, AbstractReceiverTransport );
@@ -20,11 +20,11 @@ var nestedModuleResponse = {
 	other:  [ 'data' ]
 };
 
-describe( 'Fling Receiver', function () {
+describe( 'Fling Receiver', function() {
 
 	var flingReceiver = null;
 
-	it( 'should fail to instantiate with no parameters', function () {
+	it( 'should fail to instantiate with no parameters', function() {
 		try {
 			flingReceiver = new FlingReceiver();
 			assert.ifError( new Error( 'thrown exception expected, but did not fire' ) );
@@ -33,7 +33,7 @@ describe( 'Fling Receiver', function () {
 		}
 	} );
 
-	it( 'should fail to instantiate with baseDir not existing', function () {
+	it( 'should fail to instantiate with baseDir not existing', function() {
 
 		try {
 			flingReceiver = new FlingReceiver( {
@@ -45,7 +45,7 @@ describe( 'Fling Receiver', function () {
 		}
 	} );
 
-	it( 'should fail to instantiate with baseDir not a directory', function () {
+	it( 'should fail to instantiate with baseDir not a directory', function() {
 
 		try {
 			flingReceiver = new FlingReceiver( {
@@ -57,7 +57,7 @@ describe( 'Fling Receiver', function () {
 		}
 	} );
 
-	it( 'should fail to instantiate with authorize not a function', function () {
+	it( 'should fail to instantiate with authorize not a function', function() {
 
 		try {
 			flingReceiver = new FlingReceiver( {
@@ -70,22 +70,22 @@ describe( 'Fling Receiver', function () {
 		}
 	} );
 
-	it( 'should instantiate with baseDir set', function () {
+	it( 'should instantiate with baseDir set', function() {
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname
 		} );
 	} );
 
-	it( 'should instantiate with authorize set', function () {
+	it( 'should instantiate with authorize set', function() {
 		flingReceiver = new FlingReceiver( {
 			baseDir:   __dirname,
-			authorize: function () {
+			authorize: function() {
 				// NO-OP
 			}
 		} );
 	} );
 
-	it( 'should add a transport once', function () {
+	it( 'should add a transport once', function() {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname
@@ -96,7 +96,7 @@ describe( 'Fling Receiver', function () {
 		var onCount = 0;
 
 		var transport = {
-			on: function ( field, func ) {
+			on: function( field, func ) {
 				onField = field;
 				onFunc = func;
 				onCount++;
@@ -113,18 +113,24 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event with 404 if method action missing, and log it', function ( done ) {
+	it( 'should batch initialize all added Transports', function() {
+
+		// TODO: Pete, here is the place to test out flingReceiver.init();
+
+	} );
+
+	it( 'should respond to a request event with 404 if method action missing, and log it', function( done ) {
 
 		var logs = [];
 		var eventedLogs = [];
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules',
-			scribe: function ( level, message, data ) {
+			scribe: function( level, message, data ) {
 				logs.push( [level, message, data] );
 			}
 		} );
 
-		flingReceiver.on( 'log', function ( entry ) {
+		flingReceiver.on( 'log', function( entry ) {
 			eventedLogs.push( entry );
 		} );
 
@@ -144,10 +150,10 @@ describe( 'Fling Receiver', function () {
 		var response = new Response( requestId );
 
 		// catch the response
-		response.on( 'send', function ( payload ) {
+		response.on( 'send', function( payload ) {
 
 			// give logs time to settle
-			setImmediate( function () {
+			setImmediate( function() {
 				try {
 
 					assert.strictEqual( logs.length, 2 );
@@ -212,7 +218,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event with 404 if method module missing', function ( done ) {
+	it( 'should respond to a request event with 404 if method module missing', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -233,7 +239,7 @@ describe( 'Fling Receiver', function () {
 		var response = new Response( requestId );
 
 		// catch the response
-		response.on( 'send', function ( payload ) {
+		response.on( 'send', function( payload ) {
 
 			try {
 
@@ -257,7 +263,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event', function ( done ) {
+	it( 'should respond to a request event', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -277,7 +283,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function ( payload ) {
+		response.on( 'send', function( payload ) {
 
 			try {
 				assert.strictEqual( payload.jsonrpc, '2.0' );
@@ -305,7 +311,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should pass params to the module.action', function ( done ) {
+	it( 'should pass params to the module.action', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -325,7 +331,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 				assert.strictEqual( response.jsonrpc, '2.0' );
@@ -354,7 +360,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should find modules in sub directories', function ( done ) {
+	it( 'should find modules in sub directories', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -374,7 +380,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 				assert.strictEqual( response.jsonrpc, '2.0' );
@@ -394,12 +400,12 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should block an unauthorized agent', function ( done ) {
+	it( 'should block an unauthorized agent', function( done ) {
 
 		var lastAuthorization = null;
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules',
-			authorize: function ( request, done ) {
+			authorize: function( request, done ) {
 				lastAuthorization = request;
 				done( false );
 			}
@@ -409,7 +415,7 @@ describe( 'Fling Receiver', function () {
 
 
 		var transport = new FakeTransport( {
-			authenticate: function ( context, done ) {
+			authenticate: function( context, done ) {
 				done( {agentId: requestId} );
 			}
 		} );
@@ -425,7 +431,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 
@@ -459,12 +465,12 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should allow an authorized agent', function ( done ) {
+	it( 'should allow an authorized agent', function( done ) {
 
 		var lastAuthorization = null;
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules',
-			authorize: function ( request, done ) {
+			authorize: function( request, done ) {
 				lastAuthorization = request;
 				done( true );
 			}
@@ -474,7 +480,7 @@ describe( 'Fling Receiver', function () {
 
 
 		var transport = new FakeTransport( {
-			authenticate: function ( context, done ) {
+			authenticate: function( context, done ) {
 				done( {agentId: requestId} );
 			}
 		} );
@@ -490,7 +496,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 
@@ -528,7 +534,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event with the RPC module error codes', function ( done ) {
+	it( 'should respond to a request event with the RPC module error codes', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -547,7 +553,7 @@ describe( 'Fling Receiver', function () {
 		}, {some: 'context'} );
 
 		var response = new Response( requestId );
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 
@@ -572,7 +578,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event with the RPC module error codes with multiple errors', function ( done ) {
+	it( 'should respond to a request event with the RPC module error codes with multiple errors', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -591,7 +597,7 @@ describe( 'Fling Receiver', function () {
 		}, {some: 'context'} );
 
 		var response = new Response( requestId );
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 
@@ -626,7 +632,7 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should respond to a request event with the RPC module error codes even when payload passed to send', function ( done ) {
+	it( 'should respond to a request event with the RPC module error codes even when payload passed to send', function( done ) {
 
 		flingReceiver = new FlingReceiver( {
 			baseDir: __dirname + '/rpcModules'
@@ -645,7 +651,7 @@ describe( 'Fling Receiver', function () {
 		}, {some: 'context'} );
 
 		var response = new Response( requestId );
-		response.on( 'send', function ( response ) {
+		response.on( 'send', function( response ) {
 
 			try {
 
@@ -680,10 +686,10 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should use middleware, and middleware should be able to modify the request', function ( done ) {
+	it( 'should use middleware, and middleware should be able to modify the request', function( done ) {
 
 		var doned = false;
-		var _done = function ( e ) {
+		var _done = function( e ) {
 			if ( doned ) {
 				return;
 			}
@@ -703,7 +709,7 @@ describe( 'Fling Receiver', function () {
 		var mw2Count = 0;
 		var mw3Count = 0;
 
-		flingReceiver.use( function ( request, response, next ) {
+		flingReceiver.use( function( request, response, next ) {
 			try {
 				assert.ok( request instanceof Request );
 				assert.ok( response instanceof Response );
@@ -719,9 +725,9 @@ describe( 'Fling Receiver', function () {
 			}
 		} );
 
-		flingReceiver.use( [ 'not really a middleware ' ] );
+		flingReceiver.use( [ 'not really a middleware ' ] ); // it should ignore this
 
-		flingReceiver.use( function ( request, response, next ) {
+		flingReceiver.use( function( request, response, next ) {
 			try {
 				assert.ok( request instanceof Request );
 				assert.ok( response instanceof Response );
@@ -739,7 +745,7 @@ describe( 'Fling Receiver', function () {
 			}
 		} );
 
-		flingReceiver.use( function ( request, response, next ) {
+		flingReceiver.use( function( request, response, next ) {
 			try {
 				assert.ok( request instanceof Request );
 				assert.ok( response instanceof Response );
@@ -772,7 +778,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function () {
+		response.on( 'send', function() {
 			try {
 
 				assert.strictEqual( mw1Count, 1 );
@@ -792,10 +798,10 @@ describe( 'Fling Receiver', function () {
 
 	} );
 
-	it( 'should use middleware, and middleware should be able to forward a call to a new method', function ( done ) {
+	it( 'should use middleware, and middleware should be able to forward a call to a new method', function( done ) {
 
 		var doned = false;
-		var _done = function ( e ) {
+		var _done = function( e ) {
 			if ( doned ) {
 				return;
 			}
@@ -815,7 +821,7 @@ describe( 'Fling Receiver', function () {
 		var mw2Count = 0;
 		var mw3Count = 0;
 
-		flingReceiver.use( function ( request, response, next ) {
+		flingReceiver.use( function( request, response, next ) {
 			try {
 				assert.ok( request instanceof Request );
 				assert.ok( response instanceof Response );
@@ -826,7 +832,7 @@ describe( 'Fling Receiver', function () {
 			}
 		} );
 
-		flingReceiver.use( function ( request, response, next ) {
+		flingReceiver.use( function( request, response, next ) {
 			try {
 				assert.ok( request instanceof Request );
 				assert.ok( response instanceof Response );
@@ -844,7 +850,7 @@ describe( 'Fling Receiver', function () {
 			}
 		} );
 
-		flingReceiver.use( function ( request, response, next ) {
+		flingReceiver.use( function( request, response, next ) {
 			try {
 				assert.ok( request instanceof Request );
 				assert.ok( response instanceof Response );
@@ -872,7 +878,7 @@ describe( 'Fling Receiver', function () {
 
 		var response = new Response( requestId );
 
-		response.on( 'send', function ( payload ) {
+		response.on( 'send', function( payload ) {
 			try {
 
 				assert.strictEqual( typeof payload, 'object' );
