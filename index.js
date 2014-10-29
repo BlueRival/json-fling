@@ -1,7 +1,6 @@
 "use strict";
 
-module.exports.Receiver = require( './lib/receive' );
-module.exports.Sender = require( './lib/send' );
+module.exports.Receiver = require( './lib/receiver' );
 
 module.exports.transports = {
 	receivers: {
@@ -11,4 +10,23 @@ module.exports.transports = {
 	senders:   {
 		Http: require( './lib/transport.sender.http' )
 	}
+};
+
+// convenience method for creating a receiver.
+module.exports.createReceiver = function( params ) {
+
+	params = params || {};
+	var transConfig = params.transports;
+
+	var receiver = new this.Receiver( {
+		baseDir: params.baseDir
+	} );
+
+	for ( var name in transConfig ) {
+		if ( transConfig.hasOwnProperty( name ) && this.transports.receivers.hasOwnProperty( name ) ) {
+			receiver.addTransport( new this.transports.receivers[ name ]( transConfig[ name ] ) );
+		}
+	}
+
+	return receiver;
 };

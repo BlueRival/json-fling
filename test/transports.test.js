@@ -1,7 +1,7 @@
 "use strict";
 
 var assert = require( 'assert' );
-var FlingReceiver = require( '../lib/receive' );
+var FlingReceiver = require( '../lib/receiver' );
 var AbstractReceiverTransport = require( '../lib/transport.receiver.abstract' );
 
 describe( 'transports.receiver', function () {
