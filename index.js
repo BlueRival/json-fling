@@ -19,6 +19,7 @@ module.exports.createReceiver = function( params ) {
 	var transConfig = params.transports;
 
 	var receiver = new this.Receiver( {
+		authorize: params.authorize,
 		baseDir: params.baseDir
 	} );
 
